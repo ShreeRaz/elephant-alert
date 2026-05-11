@@ -1,98 +1,161 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+// app/(tabs)/index.tsx
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+  StyleSheet,
+  View,
+  Text,
+  ActivityIndicator,
+  Alert,
+  TouchableOpacity,
+} from "react-native";
+import MapView, { Marker, Callout } from "react-native-maps";
+import * as Location from "expo-location";
+import { supabase } from "@/lib/supabase";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+type Sighting = {
+  id: string;
+  latitude: number;
+  longitude: number;
+  description: string;
+  reported_by: string;
+  created_at: string;
+};
 
-export default function HomeScreen() {
+export default function MapScreen() {
+  const [sightings, setSightings] = useState<Sighting[]>([]);
+  const [userLocation, setUserLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    getUserLocation();
+    fetchSightings();
+    subscribeToSightings();
+  }, []);
+
+  async function getUserLocation() {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission denied",
+        "Location access is needed to show your position.",
+      );
+      return;
+    }
+    const loc = await Location.getCurrentPositionAsync({});
+    setUserLocation({
+      latitude: loc.coords.latitude,
+      longitude: loc.coords.longitude,
+    });
+  }
+
+  async function fetchSightings() {
+    const { data, error } = await supabase
+      .from("sightings")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!error && data) setSightings(data);
+    setLoading(false);
+  }
+
+  function subscribeToSightings() {
+    // Real-time: new sightings appear on map instantly
+    const channel = supabase
+      .channel("sightings-channel")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "sightings" },
+        (payload) => setSightings((prev) => [payload.new as Sighting, ...prev]),
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#f97316" />
+        <Text style={styles.loadingText}>Loading sightings...</Text>
+      </View>
+    );
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <View style={styles.container}>
+      <MapView
+        style={styles.map}
+        initialRegion={{
+          latitude: userLocation?.latitude ?? 20.5937,
+          longitude: userLocation?.longitude ?? 78.9629,
+          latitudeDelta: 5,
+          longitudeDelta: 5,
+        }}
+        showsUserLocation
+        showsMyLocationButton
+      >
+        {sightings.map((s) => (
+          <Marker
+            key={s.id}
+            coordinate={{ latitude: s.latitude, longitude: s.longitude }}
+            pinColor="#f97316"
+          >
+            <Callout>
+              <View style={styles.callout}>
+                <Text style={styles.calloutTitle}>🐘 Elephant Sighting</Text>
+                <Text style={styles.calloutDesc}>
+                  {s.description || "No description"}
+                </Text>
+                <Text style={styles.calloutMeta}>
+                  Reported by: {s.reported_by || "Anonymous"}
+                </Text>
+                <Text style={styles.calloutMeta}>
+                  {new Date(s.created_at).toLocaleString()}
+                </Text>
+              </View>
+            </Callout>
+          </Marker>
+        ))}
+      </MapView>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      {/* Report FAB */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => router.push("/report")}
+      >
+        <Text style={styles.fabText}>🐘 Report Sighting</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: { flex: 1 },
+  map: { flex: 1 },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loadingText: { marginTop: 12, fontSize: 16, color: "#666" },
+  callout: { width: 200, padding: 8 },
+  calloutTitle: { fontWeight: "bold", fontSize: 14, marginBottom: 4 },
+  calloutDesc: { fontSize: 13, marginBottom: 4 },
+  calloutMeta: { fontSize: 11, color: "#888" },
+  fab: {
+    position: "absolute",
+    bottom: 32,
+    alignSelf: "center",
+    backgroundColor: "#f97316",
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 32,
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+  fabText: { color: "#fff", fontWeight: "bold", fontSize: 15 },
 });
