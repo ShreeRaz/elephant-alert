@@ -1,14 +1,40 @@
+import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
+import { useState } from "react";
 import {
-  View,
+  Image,
+  StyleSheet,
   Text,
   TextInput,
-  StyleSheet,
   TouchableOpacity,
+  View,
 } from "react-native";
-import { useState } from "react";
 
 export default function ReportScreen() {
   const [description, setDescription] = useState("");
+  const [image, setImage] = useState<string | null>(null);
+  const router = useRouter();
+
+  // Function to pick an image from the gallery
+
+  async function pickImage() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (status !== "granted") {
+      alert("Sorry, we need camera roll permissions!");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+    }
+  }
   return (
     <View style={styles.container}>
       <TextInput
@@ -17,9 +43,14 @@ export default function ReportScreen() {
         onChangeText={setDescription}
         placeholder="Describe the location..."
       />
+      <TouchableOpacity style={styles.imageButton} onPress={pickImage}>
+        <Text style={styles.imageButtonText}>📷 Add Photo</Text>
+      </TouchableOpacity>
+
+      {image && <Image source={{ uri: image }} style={styles.preview} />}
       <TouchableOpacity
         style={styles.button}
-        onPress={() => console.log("Alert tapped!")}
+        onPress={() => router.push("/modal")}
       >
         <Text style={styles.buttonText}>🐘 Send Alert</Text>
       </TouchableOpacity>
@@ -50,5 +81,23 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
     fontSize: 16,
+  },
+  imageButton: {
+    borderWidth: 1,
+    borderColor: "#f97316",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 12,
+  },
+  imageButtonText: {
+    color: "#f97316",
+    fontWeight: "bold",
+  },
+  preview: {
+    width: "100%",
+    height: 200,
+    borderRadius: 8,
+    marginTop: 12,
   },
 });

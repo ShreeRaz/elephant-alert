@@ -1,17 +1,17 @@
 // app/(tabs)/index.tsx
+import { supabase } from "@/lib/supabase";
+import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  StyleSheet,
-  View,
-  Text,
   ActivityIndicator,
   Alert,
+  StyleSheet,
+  Text,
   TouchableOpacity,
+  View,
 } from "react-native";
-import MapView, { Marker, Callout } from "react-native-maps";
-import * as Location from "expo-location";
-import { supabase } from "@/lib/supabase";
+import MapView, { Callout, Marker } from "react-native-maps";
 
 type Sighting = {
   id: string;
