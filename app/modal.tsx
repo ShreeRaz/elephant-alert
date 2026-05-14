@@ -1,8 +1,52 @@
-import { useRouter } from "expo-router";
+import { supabase } from "@/lib/supabase";
+import * as Location from "expo-location";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function ModalScreen() {
   const router = useRouter();
+  const { description, image } = useLocalSearchParams();
+  const [loading, setLoading] = useState(false);
+
+  async function sendAlert() {
+    setLoading(true);
+    try {
+      // 1. Get user location
+      const { coords } = await Location.getCurrentPositionAsync({});
+
+      // 2. Save sighting to Supabase
+      const { error } = await supabase.from("sightings").insert({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        description,
+        photo_url: image || null,
+      });
+
+      if (error) throw error;
+
+      // 3. Call Edge Function to notify all users
+      await fetch(
+        "https://ebhvroepnkrlwcjrcpgy.supabase.co/functions/v1/notify-sighting",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            description,
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+          }),
+        },
+      );
+
+      // 4. Go back to map
+      router.dismissAll();
+    } catch (err) {
+      console.log("Error sending alert:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -19,10 +63,11 @@ export default function ModalScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.sendButton}
-          onPress={() => console.log("Sending...")}
+          style={[styles.sendButton, loading && { opacity: 0.7 }]}
+          onPress={sendAlert}
+          disabled={loading}
         >
-          <Text style={styles.sendText}>Send</Text>
+          <Text style={styles.sendText}>{loading ? "Sending..." : "Send"}</Text>
         </TouchableOpacity>
       </View>
     </View>
