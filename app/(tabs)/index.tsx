@@ -1,8 +1,14 @@
-// app/(tabs)/index.tsx
 import { supabase } from "@/lib/supabase";
+import {
+  Camera,
+  CameraRef,
+  Map,
+  Marker,
+  UserLocation,
+} from "@maplibre/maplibre-react-native";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -11,7 +17,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import MapView, { Callout, Marker } from "react-native-maps";
 
 type Sighting = {
   id: string;
@@ -30,12 +35,31 @@ export default function MapScreen() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const cameraRef = useRef<CameraRef>(null);
 
   useEffect(() => {
     getUserLocation();
     fetchSightings();
     subscribeToSightings();
   }, []);
+
+  // Fly to user location when GPS responds
+  useEffect(() => {
+    if (userLocation && cameraRef.current) {
+      cameraRef.current.flyTo({
+        center: [userLocation.longitude, userLocation.latitude],
+        duration: 1000,
+      });
+    }
+  }, [userLocation]);
+
+  function zoomIn() {
+    cameraRef.current?.zoomTo(16, { duration: 300 });
+  }
+
+  function zoomOut() {
+    cameraRef.current?.zoomTo(8, { duration: 300 });
+  }
 
   async function getUserLocation() {
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -64,7 +88,6 @@ export default function MapScreen() {
   }
 
   function subscribeToSightings() {
-    // Real-time: new sightings appear on map instantly
     const channel = supabase
       .channel("sightings-channel")
       .on(
@@ -88,42 +111,35 @@ export default function MapScreen() {
 
   return (
     <View style={styles.container}>
-      <MapView
+      <Map
         style={styles.map}
-        initialRegion={{
-          latitude: userLocation?.latitude ?? 20.5937,
-          longitude: userLocation?.longitude ?? 78.9629,
-          latitudeDelta: 5,
-          longitudeDelta: 5,
-        }}
-        showsUserLocation
-        showsMyLocationButton
+        mapStyle="https://tiles.openfreemap.org/styles/bright"
       >
+        <Camera
+          ref={cameraRef}
+          initialViewState={{
+            center: [85.324, 27.7172],
+            zoom: 5,
+          }}
+        />
+        <UserLocation />
         {sightings.map((s) => (
-          <Marker
-            key={s.id}
-            coordinate={{ latitude: s.latitude, longitude: s.longitude }}
-            pinColor="#f97316"
-          >
-            <Callout>
-              <View style={styles.callout}>
-                <Text style={styles.calloutTitle}>🐘 Elephant Sighting</Text>
-                <Text style={styles.calloutDesc}>
-                  {s.description || "No description"}
-                </Text>
-                <Text style={styles.calloutMeta}>
-                  Reported by: {s.reported_by || "Anonymous"}
-                </Text>
-                <Text style={styles.calloutMeta}>
-                  {new Date(s.created_at).toLocaleString()}
-                </Text>
-              </View>
-            </Callout>
+          <Marker key={s.id} id={s.id} lngLat={[s.longitude, s.latitude]}>
+            <View style={styles.markerContainer}>
+              <Text style={styles.markerText}>🐘</Text>
+            </View>
           </Marker>
         ))}
-      </MapView>
+      </Map>
+      <View style={styles.zoomButtons}>
+        <TouchableOpacity style={styles.zoomButton} onPress={zoomIn}>
+          <Text style={styles.zoomText}>+</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.zoomButton} onPress={zoomOut}>
+          <Text style={styles.zoomText}>−</Text>
+        </TouchableOpacity>
+      </View>
 
-      {/* Report FAB */}
       <TouchableOpacity
         style={styles.fab}
         onPress={() => router.push("/report")}
@@ -139,10 +155,14 @@ const styles = StyleSheet.create({
   map: { flex: 1 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   loadingText: { marginTop: 12, fontSize: 16, color: "#666" },
-  callout: { width: 200, padding: 8 },
-  calloutTitle: { fontWeight: "bold", fontSize: 14, marginBottom: 4 },
-  calloutDesc: { fontSize: 13, marginBottom: 4 },
-  calloutMeta: { fontSize: 11, color: "#888" },
+  markerContainer: {
+    backgroundColor: "#f97316",
+    borderRadius: 20,
+    padding: 4,
+  },
+  markerText: {
+    fontSize: 20,
+  },
   fab: {
     position: "absolute",
     bottom: 32,
@@ -156,6 +176,30 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
+  },
+  zoomButtons: {
+    position: "absolute",
+    right: 16,
+    top: "40%",
+    gap: 8,
+  },
+  zoomButton: {
+    backgroundColor: "#fff",
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+  },
+  zoomText: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#333",
   },
   fabText: { color: "#fff", fontWeight: "bold", fontSize: 15 },
 });
