@@ -91,15 +91,16 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
+    marginTop: 60,
     borderColor: "#ccc",
     borderRadius: 8,
-    padding: 12,
+    padding: 20,
     fontSize: 16,
     color: "black",
   },
   button: {
     backgroundColor: "#f97316",
-    padding: 16,
+    padding: 20,
     borderRadius: 8,
     alignItems: "center",
     marginTop: 16,
