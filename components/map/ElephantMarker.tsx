@@ -1,8 +1,9 @@
 import { Platform, StyleSheet, Text, View } from "react-native";
 
+// ✅ No shared state, pure render, unique per call
 export function ElephantMarker() {
   return (
-    <View style={styles.container}>
+    <View style={styles.container} collapsable={false}>
       <Text style={styles.emoji}>🐘</Text>
     </View>
   );

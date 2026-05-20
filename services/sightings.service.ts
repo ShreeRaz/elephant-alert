@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { Sighting } from "@/types";
+import * as Location from "expo-location";
 
 export async function fetchAllSightings(): Promise<Sighting[]> {
   const { data, error } = await supabase
@@ -9,6 +10,27 @@ export async function fetchAllSightings(): Promise<Sighting[]> {
 
   if (error) throw error;
   return data ?? [];
+}
+export async function reverseGeocode(
+  latitude: number,
+  longitude: number
+): Promise<string> {
+  try {
+    const results = await Location.reverseGeocodeAsync({ latitude, longitude });
+    if (results.length === 0) return "Unknown location";
+
+    const r = results[0];
+  
+    return (
+      r.district     ||
+      r.city         ||
+      r.subregion    ||
+      r.region       ||
+      "Unknown location"
+    );
+  } catch {
+    return "Unknown location";
+  }
 }
 
 export function subscribeToNewSightings(

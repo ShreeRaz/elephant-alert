@@ -12,8 +12,8 @@ import {
 } from "@/constants/map";
 import { useSightings } from "@/hooks/useSightings";
 import { useUserLocation } from "@/hooks/useUserLocation";
-import { useRouter } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Platform,
   StyleSheet,
@@ -26,11 +26,36 @@ import MapView, { MapType, Marker, PROVIDER_GOOGLE } from "react-native-maps";
 export default function MapScreen() {
   const router = useRouter();
   const mapRef = useRef<MapView>(null);
+
   const [mapType, setMapType] = useState<MapType>("standard");
   const [showLayerPicker, setShowLayerPicker] = useState(false);
+  const [isMapReady, setIsMapReady] = useState(false); // ✅ declared here
 
   const { sightings, isLoading } = useSightings();
   const { isLocating, locateUser } = useUserLocation();
+
+  // ✅ params declared before useEffect
+  const { lat, lng } = useLocalSearchParams<{ lat?: string; lng?: string }>();
+
+  // ✅ useEffect AFTER all declarations
+  useEffect(() => {
+    if (!lat || !lng || !isMapReady) return;
+
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lng);
+
+    if (isNaN(latitude) || isNaN(longitude)) return;
+
+    mapRef.current?.animateToRegion(
+      {
+        latitude,
+        longitude,
+        latitudeDelta: 0.03,
+        longitudeDelta: 0.03,
+      },
+      900,
+    );
+  }, [lat, lng, isMapReady]);
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
 
@@ -88,11 +113,13 @@ export default function MapScreen() {
         rotateEnabled={true}
         pitchEnabled={false}
         toolbarEnabled={false}
+        onMapReady={() => setIsMapReady(true)} // ✅ sets isMapReady when map loads
         onPress={() => setShowLayerPicker(false)}
       >
         {sightings.map((s) => (
           <Marker
             key={s.id}
+            identifier={s.id}
             coordinate={{ latitude: s.latitude, longitude: s.longitude }}
             title={s.description}
             description={`Reported by ${s.reported_by}`}
@@ -103,14 +130,12 @@ export default function MapScreen() {
         ))}
       </MapView>
 
-      {/* Right controls */}
       <View style={styles.rightControls}>
         <ZoomControls onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} />
         <View style={styles.divider} />
         <LocateButton isLocating={isLocating} onPress={handleLocate} />
       </View>
 
-      {/* Layer picker */}
       <View style={styles.layerContainer}>
         <LayerPicker
           activeType={mapType}
@@ -120,10 +145,8 @@ export default function MapScreen() {
         />
       </View>
 
-      {/* Badge */}
       <SightingsBadge count={sightings.length} />
 
-      {/* FAB */}
       <TouchableOpacity
         style={styles.fab}
         onPress={() => router.push("/report")}
