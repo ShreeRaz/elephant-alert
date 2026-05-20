@@ -11,6 +11,7 @@ export async function fetchAllSightings(): Promise<Sighting[]> {
   if (error) throw error;
   return data ?? [];
 }
+
 export async function reverseGeocode(
   latitude: number,
   longitude: number
@@ -18,14 +19,12 @@ export async function reverseGeocode(
   try {
     const results = await Location.reverseGeocodeAsync({ latitude, longitude });
     if (results.length === 0) return "Unknown location";
-
     const r = results[0];
-  
     return (
-      r.district     ||
-      r.city         ||
-      r.subregion    ||
-      r.region       ||
+      r.district ||
+      r.city ||
+      r.subregion ||
+      r.region ||
       "Unknown location"
     );
   } catch {
@@ -36,8 +35,11 @@ export async function reverseGeocode(
 export function subscribeToNewSightings(
   onNew: (sighting: Sighting) => void
 ): () => void {
+  // Use a unique channel name each time to avoid reuse conflicts
+  const channelName = `sightings-realtime-${Date.now()}`;
+  
   const channel = supabase
-    .channel("sightings-realtime")
+    .channel(channelName)
     .on(
       "postgres_changes",
       { event: "INSERT", schema: "public", table: "sightings" },
