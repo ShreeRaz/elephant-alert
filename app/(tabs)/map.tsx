@@ -2,18 +2,15 @@ import { ElephantMarker } from "@/components/map/ElephantMarker";
 import { LayerPicker } from "@/components/map/LayerPicker";
 import { LocateButton } from "@/components/map/LocateButton";
 import { ZoomControls } from "@/components/map/ZoomControls";
-import { SightingsBadge } from "@/components/ui/Badge";
-import { LoadingOverlay } from "@/components/ui/LoadingOverlay";
 import {
   DEFAULT_ZOOM,
   LOCATION_ZOOM_DELTA,
   MIN_ZOOM,
   NEPAL_REGION,
 } from "@/constants/map";
-import { useSightings } from "@/hooks/useSightings";
 import { useUserLocation } from "@/hooks/useUserLocation";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Platform,
   StyleSheet,
@@ -31,20 +28,27 @@ export default function MapScreen() {
   const [showLayerPicker, setShowLayerPicker] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false); // ✅ declared here
 
-  const { sightings, isLoading } = useSightings();
   const { isLocating, locateUser } = useUserLocation();
 
   // ✅ params declared before useEffect
   const { lat, lng } = useLocalSearchParams<{ lat?: string; lng?: string }>();
 
-  // ✅ useEffect AFTER all declarations
-  useEffect(() => {
-    if (!lat || !lng || !isMapReady) return;
+  const selectedLocation = useMemo(() => {
+    if (!lat || !lng) return null;
 
     const latitude = parseFloat(lat);
     const longitude = parseFloat(lng);
 
-    if (isNaN(latitude) || isNaN(longitude)) return;
+    if (isNaN(latitude) || isNaN(longitude)) return null;
+
+    return { latitude, longitude };
+  }, [lat, lng]);
+  // ✅ useEffect AFTER all declarations
+  useEffect(() => {
+    if (!isMapReady) return;
+    if (!selectedLocation) return;
+
+    const { latitude, longitude } = selectedLocation;
 
     mapRef.current?.animateToRegion(
       {
@@ -55,8 +59,7 @@ export default function MapScreen() {
       },
       900,
     );
-  }, [lat, lng, isMapReady]);
-
+  }, [isMapReady, selectedLocation]);
   // ─── Handlers ───────────────────────────────────────────────────────────────
 
   const handleLocate = useCallback(async () => {
@@ -94,10 +97,6 @@ export default function MapScreen() {
 
   // ─── Render ─────────────────────────────────────────────────────────────────
 
-  if (isLoading) {
-    return <LoadingOverlay message="Loading sightings..." />;
-  }
-
   return (
     <View style={styles.container}>
       <MapView
@@ -113,21 +112,14 @@ export default function MapScreen() {
         rotateEnabled={true}
         pitchEnabled={false}
         toolbarEnabled={false}
-        onMapReady={() => setIsMapReady(true)} // ✅ sets isMapReady when map loads
+        onMapReady={() => setIsMapReady(true)}
         onPress={() => setShowLayerPicker(false)}
       >
-        {sightings.map((s) => (
-          <Marker
-            key={s.id}
-            identifier={s.id}
-            coordinate={{ latitude: s.latitude, longitude: s.longitude }}
-            title={s.description}
-            description={`Reported by ${s.reported_by}`}
-            tracksViewChanges={false}
-          >
+        {selectedLocation && (
+          <Marker coordinate={selectedLocation}>
             <ElephantMarker />
           </Marker>
-        ))}
+        )}
       </MapView>
 
       <View style={styles.rightControls}>
@@ -144,8 +136,6 @@ export default function MapScreen() {
           onToggle={() => setShowLayerPicker((v) => !v)}
         />
       </View>
-
-      <SightingsBadge count={sightings.length} />
 
       <TouchableOpacity
         style={styles.fab}
