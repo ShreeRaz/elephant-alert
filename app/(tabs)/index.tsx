@@ -1,10 +1,12 @@
 // app/(tabs)/index.tsx
+import { distanceBetween, formatDistance } from "@/constants/map";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useSightings } from "@/hooks/useSightings";
+import { useUserLocation } from "@/hooks/useUserLocation";
 import { Sighting } from "@/types";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Platform,
@@ -206,6 +208,7 @@ function SightingCard({
 export default function HomeScreen() {
   const router = useRouter();
   const { sightings, isLoading, refetch } = useSightings();
+  const { locateUser, lastLocation } = useUserLocation();
   const { unreadCount, markAllRead } = useNotifications();
 
   const [refreshing, setRefreshing] = useState(false);
@@ -219,7 +222,40 @@ export default function HomeScreen() {
   const todayCount = sightings.filter(
     (s) => new Date(s.created_at).toDateString() === new Date().toDateString(),
   ).length;
+
   const activeReporters = new Set(sightings.map((s) => s.reported_by)).size;
+
+  const nearestSighting = useMemo(() => {
+    if (!lastLocation || sightings.length === 0) return null;
+
+    return sightings.reduce((nearest, s) => {
+      const dist = distanceBetween(
+        lastLocation.latitude,
+        lastLocation.longitude,
+        s.latitude,
+        s.longitude,
+      );
+      const nearestDist = distanceBetween(
+        lastLocation.latitude,
+        lastLocation.longitude,
+        nearest.latitude,
+        nearest.longitude,
+      );
+      return dist < nearestDist ? s : nearest;
+    });
+  }, [sightings, lastLocation]);
+
+  const nearestDistance = useMemo(() => {
+    if (!lastLocation || !nearestSighting) return null;
+    const dist = distanceBetween(
+      lastLocation.latitude,
+      lastLocation.longitude,
+      nearestSighting.latitude,
+      nearestSighting.longitude,
+    );
+
+    return dist;
+  }, [nearestSighting, lastLocation]);
 
   // ── Reverse geocode ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -236,6 +272,10 @@ export default function HomeScreen() {
 
     if (recentSightings.length > 0) geocodeAll();
   }, [sightings]);
+
+  useEffect(() => {
+    locateUser();
+  }, []);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
@@ -348,7 +388,17 @@ export default function HomeScreen() {
                 value: String(todayCount),
                 sub: "sightings",
               },
-              { icon: "📍", label: "Nearest", value: "2.3 km", sub: "Chitwan" },
+              {
+                icon: "📍",
+                label: "Nearest",
+                value:
+                  nearestDistance !== null
+                    ? formatDistance(nearestDistance)
+                    : "—",
+                sub: nearestSighting
+                  ? (locations[nearestSighting.id] ?? "Locating...")
+                  : "No sightings",
+              },
               {
                 icon: "👥",
                 label: "Active",

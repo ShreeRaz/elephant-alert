@@ -1,5 +1,5 @@
 import * as Location from "expo-location";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Alert } from "react-native";
 
 type LocationCoords = {
@@ -14,11 +14,13 @@ type UseUserLocationReturn = {
 };
 
 export function useUserLocation(): UseUserLocationReturn {
-  const [isLocating, setIsLocating]       = useState(false);
-  const [lastLocation, setLastLocation]   = useState<LocationCoords | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const [lastLocation, setLastLocation] = useState<LocationCoords | null>(null);
+  const isLocatingRef = useRef(false); // ← use ref instead of state for the guard
 
   const locateUser = useCallback(async (): Promise<LocationCoords | null> => {
-    if (isLocating) return null;
+    if (isLocatingRef.current) return null;
+    isLocatingRef.current = true;
     setIsLocating(true);
 
     try {
@@ -52,9 +54,10 @@ export function useUserLocation(): UseUserLocationReturn {
       );
       return null;
     } finally {
+      isLocatingRef.current = false;
       setIsLocating(false);
     }
-  }, [isLocating]);
+  }, []); // ← empty deps, stable forever
 
   return { isLocating, lastLocation, locateUser };
 }

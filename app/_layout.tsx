@@ -28,7 +28,6 @@ export default function RootLayout() {
           name="modal"
           options={{ presentation: "modal", title: "Modal" }}
         />
-        <Stack.Screen name="report" options={{ title: "Report Sighting" }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
