@@ -9,8 +9,8 @@ import {
   NEPAL_REGION,
 } from "@/constants/map";
 import { useUserLocation } from "@/hooks/useUserLocation";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   Platform,
   StyleSheet,
@@ -26,11 +26,9 @@ export default function MapScreen() {
 
   const [mapType, setMapType] = useState<MapType>("standard");
   const [showLayerPicker, setShowLayerPicker] = useState(false);
-  const [isMapReady, setIsMapReady] = useState(false); // ✅ declared here
 
   const { isLocating, locateUser } = useUserLocation();
 
-  // ✅ params declared before useEffect
   const { lat, lng } = useLocalSearchParams<{ lat?: string; lng?: string }>();
 
   const selectedLocation = useMemo(() => {
@@ -44,22 +42,25 @@ export default function MapScreen() {
     return { latitude, longitude };
   }, [lat, lng]);
   // ✅ useEffect AFTER all declarations
-  useEffect(() => {
-    if (!isMapReady) return;
-    if (!selectedLocation) return;
+  useFocusEffect(
+    useCallback(() => {
+      if (!selectedLocation || !mapRef.current) return;
 
-    const { latitude, longitude } = selectedLocation;
+      const timeout = setTimeout(() => {
+        mapRef.current?.animateToRegion(
+          {
+            latitude: selectedLocation.latitude,
+            longitude: selectedLocation.longitude,
+            latitudeDelta: 0.03,
+            longitudeDelta: 0.03,
+          },
+          900,
+        );
+      }, 250);
 
-    mapRef.current?.animateToRegion(
-      {
-        latitude,
-        longitude,
-        latitudeDelta: 0.03,
-        longitudeDelta: 0.03,
-      },
-      900,
-    );
-  }, [isMapReady, selectedLocation]);
+      return () => clearTimeout(timeout);
+    }, [selectedLocation]),
+  );
   // ─── Handlers ───────────────────────────────────────────────────────────────
 
   const handleLocate = useCallback(async () => {
@@ -112,7 +113,6 @@ export default function MapScreen() {
         rotateEnabled={true}
         pitchEnabled={false}
         toolbarEnabled={false}
-        onMapReady={() => setIsMapReady(true)}
         onPress={() => setShowLayerPicker(false)}
       >
         {selectedLocation && (

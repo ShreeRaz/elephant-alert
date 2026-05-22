@@ -1,5 +1,8 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { registerPushToken } from "@/lib/notification";
+import {
+  registerPushToken,
+  setupNotificationHandlers,
+} from "@/lib/notification";
 import {
   DarkTheme,
   DefaultTheme,
@@ -18,6 +21,11 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   useEffect(() => {
     registerPushToken();
+  }, []);
+
+  useEffect(() => {
+    registerPushToken();
+    setupNotificationHandlers();
   }, []);
 
   return (

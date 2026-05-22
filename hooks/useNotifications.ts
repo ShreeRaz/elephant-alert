@@ -1,27 +1,30 @@
-// hooks/useNotifications.ts
 import { supabase } from "@/lib/supabase";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function useNotifications() {
   const [unreadCount, setUnreadCount] = useState(0);
-  const [lastSeenAt, setLastSeenAt]   = useState<string>(
+  const [lastSeenAt, setLastSeenAt] = useState<string>(
     new Date().toISOString()
   );
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
-    // Count sightings newer than lastSeenAt
     async function fetchUnread() {
       const { count } = await supabase
         .from("sightings")
         .select("*", { count: "exact", head: true })
         .gt("created_at", lastSeenAt);
-
       setUnreadCount(count ?? 0);
     }
 
     fetchUnread();
 
-    const channel = supabase
+    // Clean up existing channel before creating new one
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
+
+    channelRef.current = supabase
       .channel("notifications")
       .on(
         "postgres_changes",
@@ -30,7 +33,12 @@ export function useNotifications() {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
   }, []);
 
   function markAllRead() {

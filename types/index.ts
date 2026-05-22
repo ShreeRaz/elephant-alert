@@ -1,4 +1,4 @@
-// import MapType from react-native-maps wherever this is used
+
 import { MapType } from "react-native-maps";
 
 export type Sighting = {
