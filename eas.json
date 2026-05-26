@@ -1,0 +1,36 @@
+{
+  "cli": {
+    "version": ">= 19.0.8",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "GOOGLE_SERVICES_JSON": "secret:GOOGLE_SERVICES_JSON",
+        "EXPO_PUBLIC_SUPABASE_URL": "secret:EXPO_PUBLIC_SUPABASE_URL",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "secret:EXPO_PUBLIC_SUPABASE_ANON_KEY",
+        "GOOGLE_MAPS_API_KEY": "secret:GOOGLE_MAPS_API_KEY"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "GOOGLE_SERVICES_JSON": "secret:GOOGLE_SERVICES_JSON",
+        "EXPO_PUBLIC_SUPABASE_URL": "secret:EXPO_PUBLIC_SUPABASE_URL",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "secret:EXPO_PUBLIC_SUPABASE_ANON_KEY",
+        "GOOGLE_MAPS_API_KEY": "secret:GOOGLE_MAPS_API_KEY"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

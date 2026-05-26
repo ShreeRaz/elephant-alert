@@ -1,6 +1,9 @@
 import { supabase } from "@/lib/supabase";
 import { useEffect, useRef, useState } from "react";
 
+// Global flag to prevent duplicate subscriptions in Strict Mode
+let isSubscribed = false;
+
 export function useNotifications() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [lastSeenAt, setLastSeenAt] = useState<string>(
@@ -19,10 +22,8 @@ export function useNotifications() {
 
     fetchUnread();
 
-    // Clean up existing channel before creating new one
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-    }
+    if (isSubscribed) return;
+    isSubscribed = true;
 
     channelRef.current = supabase
       .channel("notifications")
@@ -37,6 +38,7 @@ export function useNotifications() {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
+        isSubscribed = false;
       }
     };
   }, []);

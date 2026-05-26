@@ -1,5 +1,5 @@
 import * as Location from "expo-location";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
 
 type LocationCoords = {
@@ -16,8 +16,47 @@ type UseUserLocationReturn = {
 export function useUserLocation(): UseUserLocationReturn {
   const [isLocating, setIsLocating] = useState(false);
   const [lastLocation, setLastLocation] = useState<LocationCoords | null>(null);
-  const isLocatingRef = useRef(false); // ← use ref instead of state for the guard
+  const isLocatingRef = useRef(false);
+  const watchRef = useRef<Location.LocationSubscription | null>(null);
 
+  // Auto-watch location on mount
+  useEffect(() => {
+    async function startWatching() {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") return;
+
+      // Clean up existing watcher
+      if (watchRef.current) {
+        watchRef.current.remove();
+        watchRef.current = null;
+      }
+
+      watchRef.current = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Balanced,
+          timeInterval: 10000,   // update every 10 seconds
+          distanceInterval: 10,  // or every 10 meters
+        },
+        (location) => {
+          setLastLocation({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          });
+        }
+      );
+    }
+
+    startWatching();
+
+    return () => {
+      if (watchRef.current) {
+        watchRef.current.remove();
+        watchRef.current = null;
+      }
+    };
+  }, []);
+
+  // Manual locate (for map centering etc.)
   const locateUser = useCallback(async (): Promise<LocationCoords | null> => {
     if (isLocatingRef.current) return null;
     isLocatingRef.current = true;
@@ -57,7 +96,7 @@ export function useUserLocation(): UseUserLocationReturn {
       isLocatingRef.current = false;
       setIsLocating(false);
     }
-  }, []); // ← empty deps, stable forever
+  }, []);
 
   return { isLocating, lastLocation, locateUser };
 }

@@ -9,12 +9,27 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  useColorScheme,
 } from "react-native";
 
 export default function ReportScreen() {
   const [description, setDescription] = useState("");
   const [image, setImage] = useState<string | null>(null);
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  const inputstyles = StyleSheet.create({
+    input: {
+      borderWidth: 1,
+      marginTop: 60,
+      borderColor: "#ccc",
+      borderRadius: 8,
+      padding: 20,
+      fontSize: 16,
+      color: isDark ? "white" : "black",
+    },
+  });
 
   async function openGallery() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -54,7 +69,7 @@ export default function ReportScreen() {
   return (
     <View style={styles.container}>
       <TextInput
-        style={styles.input}
+        style={inputstyles.input}
         value={description}
         onChangeText={setDescription}
         placeholder="Describe the location..."
@@ -89,15 +104,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
   },
-  input: {
-    borderWidth: 1,
-    marginTop: 60,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 20,
-    fontSize: 16,
-    color: "black",
-  },
+
   button: {
     backgroundColor: "#f97316",
     padding: 20,

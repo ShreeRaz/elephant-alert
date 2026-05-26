@@ -8,13 +8,10 @@ export default {
     scheme: "elephantalert",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
-    ios: {
-      supportsTablet: true,
-      config: {
-        googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY_IOS,
-      },
-    },
     android: {
+      googleServicesFile:
+        process.env.GOOGLE_SERVICES_JSON ??
+        "./android/app/google-services.json",
       adaptiveIcon: {
         backgroundColor: "#E6F4FE",
         foregroundImage: "./assets/images/android-icon-foreground.png",
@@ -26,7 +23,7 @@ export default {
       package: "com.ankitrajkadel.elephantalert",
       config: {
         googleMaps: {
-          apiKey: process.env.GOOGLE_MAPS_API_KEY_ANDROID,
+          apiKey: process.env.GOOGLE_MAPS_API_KEY ?? "",
         },
       },
     },

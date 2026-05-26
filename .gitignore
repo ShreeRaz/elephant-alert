@@ -48,3 +48,6 @@ app-example
 
 expo-env.d.ts
 # @end expo-cli
+
+# Firebase
+android/app/google-services.json
