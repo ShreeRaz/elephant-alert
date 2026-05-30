@@ -355,7 +355,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.heroGreeting}>Good morning, Ankit</Text>
+          <Text style={styles.heroGreeting}>Namaskar</Text>
           <Text style={styles.heroTitle}>Stay alert,{"\n"}stay safe. 🐘</Text>
 
           {sightings[0] && (

@@ -19,15 +19,20 @@ import {
   View,
 } from "react-native";
 import MapView, { MapType, Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import MapViewDirections from "react-native-maps-directions";
 
 export default function MapScreen() {
   const router = useRouter();
   const mapRef = useRef<MapView>(null);
-
+  const [navigating, setNavigating] = useState(false);
   const [mapType, setMapType] = useState<MapType>("standard");
   const [showLayerPicker, setShowLayerPicker] = useState(false);
 
-  const { isLocating, locateUser } = useUserLocation();
+  const {
+    isLocating,
+    locateUser,
+    lastLocation: userLocation,
+  } = useUserLocation();
 
   const { lat, lng } = useLocalSearchParams<{ lat?: string; lng?: string }>();
 
@@ -41,7 +46,7 @@ export default function MapScreen() {
 
     return { latitude, longitude };
   }, [lat, lng]);
-  // ✅ useEffect AFTER all declarations
+
   useFocusEffect(
     useCallback(() => {
       if (!selectedLocation || !mapRef.current) return;
@@ -61,7 +66,7 @@ export default function MapScreen() {
       return () => clearTimeout(timeout);
     }, [selectedLocation]),
   );
-  // ─── Handlers ───────────────────────────────────────────────────────────────
+  // Handlers
 
   const handleLocate = useCallback(async () => {
     setShowLayerPicker(false);
@@ -96,8 +101,7 @@ export default function MapScreen() {
     });
   }, []);
 
-  // ─── Render ─────────────────────────────────────────────────────────────────
-
+  // Render
   return (
     <View style={styles.container}>
       <MapView
@@ -119,6 +123,27 @@ export default function MapScreen() {
           <Marker coordinate={selectedLocation}>
             <ElephantMarker />
           </Marker>
+        )}
+        {navigating && selectedLocation && userLocation && (
+          <MapViewDirections
+            origin={{
+              latitude: userLocation.latitude,
+              longitude: userLocation.longitude,
+            }}
+            destination={{
+              latitude: selectedLocation.latitude,
+              longitude: selectedLocation.longitude,
+            }}
+            apikey={process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY!}
+            strokeWidth={4}
+            strokeColor="#f97316"
+            onReady={(result) => {
+              mapRef.current?.fitToCoordinates(result.coordinates, {
+                edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+                animated: true,
+              });
+            }}
+          />
         )}
       </MapView>
 
@@ -144,6 +169,16 @@ export default function MapScreen() {
       >
         <Text style={styles.fabText}>🐘 Report Sighting</Text>
       </TouchableOpacity>
+      {selectedLocation && (
+        <TouchableOpacity
+          style={styles.navigateButton}
+          onPress={() => setNavigating((v) => !v)}
+        >
+          <Text style={styles.navigateText}>
+            {navigating ? "✕ Stop" : "🧭 Navigate"}
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -188,4 +223,19 @@ const styles = StyleSheet.create({
     }),
   },
   fabText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  navigateButton: {
+    position: "absolute",
+    bottom: 100,
+    alignSelf: "center",
+    backgroundColor: "#1a2e1a",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 32,
+    elevation: 6,
+  },
+  navigateText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 15,
+  },
 });
