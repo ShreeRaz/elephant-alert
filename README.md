@@ -1,177 +1,91 @@
-# Supabase CLI
+# 🐘 Elephant Alert
 
-[![Coverage Status](https://coveralls.io/repos/github/supabase/cli/badge.svg?branch=develop)](https://coveralls.io/github/supabase/cli?branch=develop) [![Bitbucket Pipelines](https://img.shields.io/bitbucket/pipelines/supabase-cli/setup-cli/master?style=flat-square&label=Bitbucket%20Canary)](https://bitbucket.org/supabase-cli/setup-cli/pipelines) [![Gitlab Pipeline Status](https://img.shields.io/gitlab/pipeline-status/sweatybridge%2Fsetup-cli?label=Gitlab%20Canary)
-](https://gitlab.com/sweatybridge/setup-cli/-/pipelines)
+A React Native geospatial community safety application built to help residents of human-elephant conflict zones in eastern Nepal receive real-time alerts about elephant movement and stay safe.
 
-[Supabase](https://supabase.io) is an open source Firebase alternative. We're building the features of Firebase using enterprise-grade open source tools.
+---
 
-This repository contains all the functionality for Supabase CLI.
+## Why This Project Exists
 
-- [x] Running Supabase locally
-- [x] Managing database migrations
-- [x] Creating and deploying Supabase Functions
-- [x] Generating types directly from your database schema
-- [x] Making authenticated HTTP requests to [Management API](https://supabase.com/docs/reference/api/introduction)
+Jhapa and other districts in eastern Nepal sit along known elephant migration corridors. Every year, encounters between wild elephants and local communities lead to loss of crops, property damage, injuries, and sometimes fatalities — while elephants themselves are frequently harmed or killed in retaliatory or defensive incidents.
 
-## Getting started
+Most of these tragedies happen because communities have **no early-warning system**. Word of an elephant sighting spreads slowly through informal word-of-mouth, phone calls, or local social media groups — by which point people may already be in the animal's path.
 
-### Install the CLI
+Elephant Alert was built to close that gap: a lightweight, location-aware mobile app that lets community members report elephant sightings instantly and receive alerts when elephants are reported near their location, turning a fragmented, slow warning process into a fast, shared, map-based one.
 
-Available via [NPM](https://www.npmjs.com) as dev dependency. To install:
+> **Good to know:** This project was built as a portfolio/community-safety proof of concept, aimed at demonstrating how geospatial mobile tooling can be applied to a real, local problem rather than a generic tutorial use case.
 
-```bash
-npm i supabase --save-dev
-```
+---
 
-When installing with yarn 4, you need to disable experimental fetch with the following nodejs config.
+## Key Features
 
-```
-NODE_OPTIONS=--no-experimental-fetch yarn add supabase
-```
+- **Real-time sighting reports** — Users can report an elephant sighting with their current GPS location in a couple of taps.
+- **Proximity-based alerts** — Community members within a configurable radius of a reported sighting are notified.
+- **Interactive map view** — Sightings are plotted on a live map so users can visually assess nearby risk.
+- **Community-driven data** — The alert network relies on crowdsourced reports rather than a single centralized authority, making it scalable to any village or corridor.
+- **Lightweight, offline-friendly UX** — Designed with low-bandwidth rural connectivity in mind.
 
-> **Note**
-For Bun versions below v1.0.17, you must add `supabase` as a [trusted dependency](https://bun.sh/guides/install/trusted) before running `bun add -D supabase`.
+---
 
-<details>
-  <summary><b>macOS</b></summary>
+## Tech Stack
 
-  Available via [Homebrew](https://brew.sh). To install:
+| Layer | Technology |
+|---|---|
+| Mobile App | React Native |
+| Location & Mapping | Device Geolocation APIs, map/marker rendering for sighting visualization |
+| State Management | React Hooks / Context |
+| Backend & Data | REST API layer for storing and broadcasting sighting reports |
+| Notifications | Push/local notification system for proximity alerts |
 
-  ```sh
-  brew install supabase/tap/supabase
-  ```
+*Good to know: swap in your exact package names (e.g., `react-native-maps`, `expo-location`, Firebase, etc.) here so the README reflects the precise implementation.*
 
-  To install the beta release channel:
-  
-  ```sh
-  brew install supabase/tap/supabase-beta
-  brew link --overwrite supabase-beta
-  ```
-  
-  To upgrade:
+---
 
-  ```sh
-  brew upgrade supabase
-  ```
-</details>
+## How It Works
 
-<details>
-  <summary><b>Windows</b></summary>
+1. A user spots an elephant and opens the app.
+2. They submit a report — the app automatically captures their GPS coordinates and timestamp.
+3. The report is broadcast to the backend, which identifies nearby users within the alert radius.
+4. Those users receive a push notification and can view the sighting on the map to plan a safe route or stay indoors.
 
-  Available via [Scoop](https://scoop.sh). To install:
+---
 
-  ```powershell
-  scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
-  scoop install supabase
-  ```
+## Impact
 
-  To upgrade:
+- Provides communities in elephant corridor regions with a **faster, decentralized way to share safety information**, reducing reliance on slow word-of-mouth warnings.
+- Demonstrates a practical application of **geospatial mobile development** to a real human-wildlife conflict problem specific to eastern Nepal.
+- Serves as a foundation that could be extended with wildlife authority partnerships, historical movement analytics, or SMS-based alerts for users without smartphones.
 
-  ```powershell
-  scoop update supabase
-  ```
-</details>
+---
 
-<details>
-  <summary><b>Linux</b></summary>
-
-  Available via [Homebrew](https://brew.sh) and Linux packages.
-
-  #### via Homebrew
-
-  To install:
-
-  ```sh
-  brew install supabase/tap/supabase
-  ```
-
-  To upgrade:
-
-  ```sh
-  brew upgrade supabase
-  ```
-
-  #### via Linux packages
-
-  Linux packages are provided in [Releases](https://github.com/supabase/cli/releases). To install, download the `.apk`/`.deb`/`.rpm`/`.pkg.tar.zst` file depending on your package manager and run the respective commands.
-
-  ```sh
-  sudo apk add --allow-untrusted <...>.apk
-  ```
-
-  ```sh
-  sudo dpkg -i <...>.deb
-  ```
-
-  ```sh
-  sudo rpm -i <...>.rpm
-  ```
-
-  ```sh
-  sudo pacman -U <...>.pkg.tar.zst
-  ```
-</details>
-
-<details>
-  <summary><b>Other Platforms</b></summary>
-
-  You can also install the CLI via [go modules](https://go.dev/ref/mod#go-install) without the help of package managers.
-
-  ```sh
-  go install github.com/supabase/cli@latest
-  ```
-
-  Add a symlink to the binary in `$PATH` for easier access:
-
-  ```sh
-  ln -s "$(go env GOPATH)/bin/cli" /usr/bin/supabase
-  ```
-
-  This works on other non-standard Linux distros.
-</details>
-
-<details>
-  <summary><b>Community Maintained Packages</b></summary>
-
-  Available via [pkgx](https://pkgx.sh/). Package script [here](https://github.com/pkgxdev/pantry/blob/main/projects/supabase.com/cli/package.yml).
-  To install in your working directory:
-
-  ```bash
-  pkgx install supabase
-  ```
-
-  Available via [Nixpkgs](https://nixos.org/). Package script [here](https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/tools/supabase-cli/default.nix).
-</details>
-
-### Run the CLI
+## Getting Started
 
 ```bash
-supabase bootstrap
+# Clone the repository
+git clone https://github.com/<your-username>/elephant-alert.git
+cd elephant-alert
+
+# Install dependencies
+npm install
+
+# Run on Android/iOS
+npx react-native run-android
+# or
+npx react-native run-ios
 ```
 
-Or using npx:
+> **Good to know:** Update the clone URL, environment variable setup (API keys, map provider tokens), and platform-specific setup steps to match your actual repo before publishing.
 
-```bash
-npx supabase bootstrap
-```
+---
 
-The bootstrap command will guide you through the process of setting up a Supabase project using one of the [starter](https://github.com/supabase-community/supabase-samples/blob/main/samples.json) templates.
+## Roadmap
 
-## Docs
+- [ ] SMS-based alerts for non-smartphone users
+- [ ] Integration with forest/wildlife authority data feeds
+- [ ] Historical heatmap of elephant movement patterns
+- [ ] Multilingual support (Nepali, English)
 
-Command & config reference can be found [here](https://supabase.com/docs/reference/cli/about).
+---
 
-## Breaking changes
+## Author
 
-We follow semantic versioning for changes that directly impact CLI commands, flags, and configurations.
-
-However, due to dependencies on other service images, we cannot guarantee that schema migrations, seed.sql, and generated types will always work for the same CLI major version. If you need such guarantees, we encourage you to pin a specific version of CLI in package.json.
-
-## Developing
-
-To run from source:
-
-```sh
-# Go >= 1.22
-go run . help
-```
+Built by **Ankitraj Kadel** — Full-Stack Developer (MERN, Next.js, TypeScript)
