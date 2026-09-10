@@ -61,7 +61,7 @@ Elephant Alert was built to close that gap: a lightweight, location-aware mobile
 
 ```bash
 # Clone the repository
-git clone https://github.com/<your-username>/elephant-alert.git
+git clone https://github.com/ShreeRaz/elephant-alert.git
 cd elephant-alert
 
 # Install dependencies
